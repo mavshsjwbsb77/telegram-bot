@@ -4,9 +4,10 @@ from aiogram.types import Message
 import asyncio
 from flask import Flask
 from threading import Thread
+import os
 
 API_TOKEN = '8470735691:AAEXDGQ6Fi_abvRxpp52Plld38Gshc15GSw'
-ADMIN_ID = 7078757412
+ADMIN_ID = 7078757412  # ضع معرفك الصحيح
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
@@ -22,14 +23,15 @@ async def handle_message(message: Message):
     except:
         pass
 
-app = Flask('')
+app = Flask(__name__)
 
 @app.route('/')
 def home():
     return "✅ البوت يعمل الآن"
 
 def run_web():
-    app.run(host='0.0.0.0', port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
 
 def start_web():
     thread = Thread(target=run_web)
@@ -37,4 +39,4 @@ def start_web():
 
 if __name__ == '__main__':
     start_web()
-    executor.start_polling(dp)
+    executor.start_polling(dp, skip_updates=True)
