@@ -1,42 +1,34 @@
-from aiogram import Bot, Dispatcher, types
-from aiogram.utils import executor
-from aiogram.types import Message
+from telegram import Update
+from telegram.ext import Application, CommandHandler, ContextTypes
 import asyncio
-from flask import Flask
-from threading import Thread
-import os
 
-API_TOKEN = '8470735691:AAEXDGQ6Fi_abvRxpp52Plld38Gshc15GSw'
-ADMIN_ID = 7078757412  # ضع معرفك الصحيح
+# توكن البوت
+TOKEN = '8470735691:AAEXDGQ6Fi_abvRxpp52Plld38Gshc15GSw'
+# معرف الدردشة مع المدير
+ADMIN_CHAT_ID = 7078757412
 
-bot = Bot(token=API_TOKEN)
-dp = Dispatcher(bot)
+# تهيئة التطبيق
+application = Application.builder().token(TOKEN).build()
 
-@dp.message_handler()
-async def handle_message(message: Message):
-    await bot.send_message(ADMIN_ID, f"📩 رسالة من {message.from_user.full_name}:\n{message.text}")
-    reply = await message.reply("✅ تم إرسال رسالتك إلى المدير. سيتم حذفها بعد دقيقتين.")
+# معالجة الأمر /report
+async def report(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    message = update.message.text[len('/report '):]  # النص بعد الأمر
+    if not message:
+        await update.message.reply_text('يرجى كتابة رسالة بعد /report!')
+        return
+
+    # إرسال الرسالة إلى المدير
+    bot_message = await application.bot.send_message(chat_id=ADMIN_CHAT_ID, text=f'تقرير من {update.message.from_user.username}: {message}')
+
+    # حذف رسالة البوت بعد 2 دقيقة
     await asyncio.sleep(120)
-    try:
-        await message.delete()
-        await reply.delete()
-    except:
-        pass
+    await application.bot.delete_message(chat_id=ADMIN_CHAT_ID, message_id=bot_message.message_id)
 
-app = Flask(__name__)
+    # حذف رسالة المستخدم (اختياري)
+    await update.message.delete()
 
-@app.route('/')
-def home():
-    return "✅ البوت يعمل الآن"
+# إضافة معالج الأوامر
+application.add_handler(CommandHandler("report", report))
 
-def run_web():
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
-
-def start_web():
-    thread = Thread(target=run_web)
-    thread.start()
-
-if __name__ == '__main__':
-    start_web()
-    executor.start_polling(dp, skip_updates=True)
+# تشغيل البوت
+application.run_polling()
